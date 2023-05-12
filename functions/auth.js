@@ -1,26 +1,58 @@
-const simpleOauthModule = require("simple-oauth2");
-const randomstring = require("randomstring");
+// GitHub OAuth2 Provider for Cloudflare Workers
 
-export function onRequest(context) {
-  const config = {
-    client: {
-      id: env.OAUTH_CLIENT_ID,
-      secret: env.OAUTH_CLIENT_SECRET,
-    },
-    auth: {
-      // Supply GIT_HOSTNAME for enterprise github installs.
-      tokenHost: "https://github.com",
-      tokenPath: "/login/oauth/access_token",
-      authorizePath: "/login/oauth/authorize",
-    },
-  };
+import { parse } from "https://cdn.skypack.dev/querystring";
 
-  const oauth2 = new simpleOauthModule.AuthorizationCode(config);
-  const authorizationUri = oauth2.authorizeURL({
-    redirectURI: process.env.REDIRECT_URL,
-    scope: process.env.SCOPES || "repo,user",
-    state: randomstring.generate(32),
+const GITHUB_CLIENT_ID = env.OAUTH_CLIENT_ID;
+const GITHUB_CLIENT_SECRET = env.OAUTH_CLIENT_SECRET;
+const REDIRECT_URI = env.REDIRECT_URI;
+
+addEventListener("fetch", (event) => {
+  event.respondWith(handleRequest(event.request));
+});
+
+async function handleRequest(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const path = url.pathname;
+
+  if (path === "/auth/callback") {
+    const code = url.searchParams.get("code");
+    if (!code) {
+      return new Response("Error: Missing code parameter", { status: 400 });
+    }
+
+    const accessToken = await exchangeCodeForToken(code);
+
+    if (!accessToken) {
+      return new Response("Error: Invalid code", { status: 400 });
+    }
+
+    return new Response(`Access Token: ${accessToken}`);
+  }
+
+  return new Response("Not Found", { status: 404 });
+}
+
+// ... (exchangeCodeForToken function)
+
+async function exchangeCodeForToken(code: string): Promise<string | null> {
+  const tokenUrl = "https://github.com/login/oauth/access_token";
+  const headers = new Headers({ "Content-Type": "application/json" });
+  const body = JSON.stringify({
+    client_id: GITHUB_CLIENT_ID,
+    client_secret: GITHUB_CLIENT_SECRET,
+    code,
+    redirect_uri: REDIRECT_URI,
   });
 
-  return Response.redirect(authorizationUri);
+  const response = await fetch(tokenUrl, { method: "POST", headers, body });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = await response.text();
+  const parsedData = parse(data);
+  const accessToken = parsedData["access_token"];
+
+  return accessToken;
 }
