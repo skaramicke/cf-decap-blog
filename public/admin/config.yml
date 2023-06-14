@@ -2,7 +2,7 @@ backend:
   name: github
   repo: skaramicke/cf-decap-blog # Path to your GitHub repository
   branch: main # Branch to update (optional; defaults to master)
-  base_url: https://cf-decap-blog.netlify.app
+  base_url: https://cf-decap-blog.pages.dev
   auth_endpoint: /auth
 
 publish_mode: editorial_workflow
