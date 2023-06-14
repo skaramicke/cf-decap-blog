@@ -8,6 +8,7 @@ interface Env {
   ASSETS: any;
   OAUTH_CLIENT_ID: string;
   OAUTH_CLIENT_SECRET: string;
+  REDIRECT_URL: string;
 }
 
 interface Headers {
@@ -44,7 +45,7 @@ const crypto = require("crypto");
 export async function onRequestAuth(context: EventContext) {
   // Define the OAuth parameters
   const clientId = context.env.OAUTH_CLIENT_ID;
-  const redirectUri = "https://cf-decap-blog.pages.dev/callback"; // Replace with your actual callback URL
+  const redirectUri = context.env.REDIRECT_URL;
   const state = crypto.randomBytes(16).toString("hex"); // State can be used to mitigate CSRF attacks
 
   // Construct the GitHub OAuth URL
