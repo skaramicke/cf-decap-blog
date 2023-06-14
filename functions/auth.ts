@@ -40,13 +40,24 @@ interface EventContext {
   next(input?: CloudflareRequest | string, init?: RequestInit): Response; // Assuming next returns a Response. Update as needed.
 }
 
-const crypto = require("crypto");
+// convert a buffer to a string
+function bufferToString(buffer: ArrayBuffer): string {
+  return Array.prototype.map
+    .call(new Uint8Array(buffer), (x) => ("00" + x.toString(16)).slice(-2))
+    .join("");
+}
 
-export async function onRequestGet(context: EventContext) {
+async function generateState() {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return bufferToString(array);
+}
+
+export async function onRequestAuth(context: EventContext) {
   // Define the OAuth parameters
   const clientId = context.env.OAUTH_CLIENT_ID;
-  const redirectUri = context.env.REDIRECT_URL;
-  const state = crypto.randomBytes(16).toString("hex"); // State can be used to mitigate CSRF attacks
+  const redirectUri = "https://yourapp.com/callback"; // Replace with your actual callback URL
+  const state = await generateState();
 
   // Construct the GitHub OAuth URL
   const params = new URLSearchParams();
