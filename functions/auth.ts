@@ -53,7 +53,7 @@ async function generateState() {
   return bufferToString(array);
 }
 
-export async function onRequestAuth(context: EventContext) {
+export async function onRequestGet(context: EventContext) {
   // Define the OAuth parameters
   const clientId = context.env.OAUTH_CLIENT_ID;
   const redirectUri = "https://yourapp.com/callback"; // Replace with your actual callback URL
