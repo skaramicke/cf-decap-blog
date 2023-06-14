@@ -42,7 +42,7 @@ interface EventContext {
 
 const crypto = require("crypto");
 
-export async function onRequestAuth(context: EventContext) {
+export async function onRequestGet(context: EventContext) {
   // Define the OAuth parameters
   const clientId = context.env.OAUTH_CLIENT_ID;
   const redirectUri = context.env.REDIRECT_URL;
