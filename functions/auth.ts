@@ -26,13 +26,13 @@ interface EventContext {
   next(input?: CloudflareRequest | string, init?: RequestInit): void;
 }
 
-export async function onRequestPost(context: EventContext) {
+export async function onRequestGet(context: EventContext) {
   const clientId = context.env.OAUTH_CLIENT_ID;
   const clientSecret = context.env.OAUTH_CLIENT_SECRET;
 
-  // Extract the code from the request body
-  const body = await context.request.json();
-  const code = body.code;
+  // Extract the code from the query parameters
+  const url = new URL(context.request.url);
+  const code = url.searchParams.get("code");
 
   if (!code) {
     return new Response("Missing 'code'", { status: 400 });
