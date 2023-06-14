@@ -27,7 +27,8 @@ interface EventContext {
 }
 
 export async function onRequestPost(context: EventContext) {
-  const secret = context.env.SECRET;
+  const clientId = context.env.OAUTH_CLIENT_ID;
+  const clientSecret = context.env.OAUTH_CLIENT_SECRET;
 
   // Extract the code from the request body
   const body = await context.request.json();
@@ -39,8 +40,8 @@ export async function onRequestPost(context: EventContext) {
 
   // Prepare the request to GitHub's OAuth API
   const params = new URLSearchParams();
-  params.append("client_id", "YOUR_CLIENT_ID");
-  params.append("client_secret", secret);
+  params.append("client_id", clientId);
+  params.append("client_secret", clientSecret);
   params.append("code", code);
 
   const gitRequest = new Request(
