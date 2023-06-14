@@ -6,15 +6,28 @@ interface Env {
   [key: string]: any;
   SECRET: string;
   ASSETS: any;
+  OAUTH_CLIENT_ID: string;
+  OAUTH_CLIENT_SECRET: string;
 }
 
-interface RequestInit {
-  // Add properties here as needed.
+interface Headers {
+  [key: string]: string;
 }
 
 interface CloudflareRequest {
-  json(): Promise<any>;
-  // Add methods here as needed.
+  url: string;
+  method: string;
+  headers: Headers;
+  body: string; // Body as string. If a different type is used, this should be updated.
+  bodyUsed: boolean;
+  cf: any;
+  redirect: string;
+}
+
+interface RequestInit {
+  method?: string;
+  headers?: Headers;
+  body?: string;
 }
 
 interface EventContext {
@@ -23,14 +36,13 @@ interface EventContext {
   params: Params;
   waitUntil(promise: Promise<any>): void;
   passThroughOnException(): void;
-  next(input?: CloudflareRequest | string, init?: RequestInit): void;
+  next(input?: CloudflareRequest | string, init?: RequestInit): Response; // Assuming next returns a Response. Update as needed.
 }
 
-export async function onRequestGet(context: EventContext) {
+export async function onRequestGet(context: EventContext): Promise<Response> {
   const clientId = context.env.OAUTH_CLIENT_ID;
   const clientSecret = context.env.OAUTH_CLIENT_SECRET;
 
-  // Extract the code from the query parameters
   const url = new URL(context.request.url);
   const code = url.searchParams.get("code");
 
@@ -38,7 +50,6 @@ export async function onRequestGet(context: EventContext) {
     return new Response("Missing 'code'", { status: 400 });
   }
 
-  // Prepare the request to GitHub's OAuth API
   const params = new URLSearchParams();
   params.append("client_id", clientId);
   params.append("client_secret", clientSecret);
@@ -58,14 +69,19 @@ export async function onRequestGet(context: EventContext) {
 
   try {
     const gitResponse = await fetch(gitRequest);
+
+    if (!gitResponse.ok) {
+      throw new Error(
+        `GitHub API responded with status: ${gitResponse.status}`
+      );
+    }
+
     const gitBody = await gitResponse.json();
 
-    // Forward the response from GitHub
     return new Response(JSON.stringify(gitBody), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    // If something went wrong, return the error message
     return new Response(error.message, { status: 500 });
   }
 }
