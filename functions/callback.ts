@@ -1,3 +1,5 @@
+import { URL, URLSearchParams } from "url";
+
 interface Params {
   [key: string]: string;
 }
@@ -78,9 +80,23 @@ export async function onRequestGet(context: EventContext): Promise<Response> {
 
     const gitBody = await gitResponse.json();
 
-    return new Response(JSON.stringify(gitBody), {
-      headers: { "Content-Type": "application/json" },
-    });
+    // Construct script to post the authorization data to the parent window
+    const script = `
+      <script>
+      (function() {
+        window.opener.postMessage(
+          'authorization:github:success:${JSON.stringify({
+            token: gitBody.access_token,
+            provider: "github",
+          })}',
+          window.location.origin
+        )
+        window.close();
+      })()
+      </script>`;
+
+    // Serve the script to the popup window
+    return new Response(script, { headers: { "Content-Type": "text/html" } });
   } catch (error) {
     return new Response(error.message, { status: 500 });
   }
