@@ -1,31 +1,70 @@
-/*
- *  Copyright 2022 Curity AB
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+interface Params {
+  [key: string]: string;
+}
 
-import { handleRequest } from './handler'
-import Configuration from './configuration'
+interface Env {
+  [key: string]: any;
+  SECRET: string;
+  ASSETS: any;
+}
 
-addEventListener('fetch', (event) => {
-  const config = new Configuration(
-    env.ORIGINS,
-    'cf-decap-blog-auth',
-    'blabla',
-    false,
-    '',
-    env.OAUTH_CLIENT_ID,
-    env._CLIENT_SECRET,
-  )
-  event.respondWith(handleRequest(event.request, config, fetch))
-})
+interface RequestInit {
+  // Add properties here as needed.
+}
+
+interface CloudflareRequest {
+  json(): Promise<any>;
+  // Add methods here as needed.
+}
+
+interface EventContext {
+  request: CloudflareRequest;
+  env: Env;
+  params: Params;
+  waitUntil(promise: Promise<any>): void;
+  passThroughOnException(): void;
+  next(input?: CloudflareRequest | string, init?: RequestInit): void;
+}
+
+export async function onRequestPost(context: EventContext) {
+  const secret = context.env.SECRET;
+
+  // Extract the code from the request body
+  const body = await context.request.json();
+  const code = body.code;
+
+  if (!code) {
+    return new Response("Missing 'code'", { status: 400 });
+  }
+
+  // Prepare the request to GitHub's OAuth API
+  const params = new URLSearchParams();
+  params.append("client_id", "YOUR_CLIENT_ID");
+  params.append("client_secret", secret);
+  params.append("code", code);
+
+  const gitRequest = new Request(
+    "https://github.com/login/oauth/access_token",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body: params.toString(),
+    }
+  );
+
+  try {
+    const gitResponse = await fetch(gitRequest);
+    const gitBody = await gitResponse.json();
+
+    // Forward the response from GitHub
+    return new Response(JSON.stringify(gitBody), {
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    // If something went wrong, return the error message
+    return new Response(error.message, { status: 500 });
+  }
+}
