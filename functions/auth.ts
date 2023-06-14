@@ -39,49 +39,23 @@ interface EventContext {
   next(input?: CloudflareRequest | string, init?: RequestInit): Response; // Assuming next returns a Response. Update as needed.
 }
 
-export async function onRequestGet(context: EventContext): Promise<Response> {
+const crypto = require("crypto");
+
+export async function onRequestAuth(context: EventContext) {
+  // Define the OAuth parameters
   const clientId = context.env.OAUTH_CLIENT_ID;
-  const clientSecret = context.env.OAUTH_CLIENT_SECRET;
+  const redirectUri = "https://cf-decap-blog.pages.dev/callback"; // Replace with your actual callback URL
+  const state = crypto.randomBytes(16).toString("hex"); // State can be used to mitigate CSRF attacks
 
-  const url = new URL(context.request.url);
-  const code = url.searchParams.get("code");
-
-  if (!code) {
-    return new Response("Missing 'code'", { status: 400 });
-  }
-
+  // Construct the GitHub OAuth URL
   const params = new URLSearchParams();
   params.append("client_id", clientId);
-  params.append("client_secret", clientSecret);
-  params.append("code", code);
+  params.append("redirect_uri", redirectUri);
+  params.append("state", state);
+  params.append("scope", "repo,user"); // Replace with the scopes you need
+  const authUrl =
+    "https://github.com/login/oauth/authorize?" + params.toString();
 
-  const gitRequest = new Request(
-    "https://github.com/login/oauth/access_token",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-      },
-      body: params.toString(),
-    }
-  );
-
-  try {
-    const gitResponse = await fetch(gitRequest);
-
-    if (!gitResponse.ok) {
-      throw new Error(
-        `GitHub API responded with status: ${gitResponse.status}`
-      );
-    }
-
-    const gitBody = await gitResponse.json();
-
-    return new Response(JSON.stringify(gitBody), {
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    return new Response(error.message, { status: 500 });
-  }
+  // Redirect the user to GitHub's OAuth page
+  return Response.redirect(authUrl);
 }
