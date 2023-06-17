@@ -65,6 +65,7 @@ export async function onRequestGet(context: EventContext) {
   params.append("redirect_uri", redirectUri);
   params.append("state", state);
   params.append("scope", "repo,user"); // Replace with the scopes you need
+  console.log("auth params", params.toString());
   const authUrl =
     "https://github.com/login/oauth/authorize?" + params.toString();
 
