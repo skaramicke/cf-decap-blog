@@ -56,7 +56,7 @@ async function generateState() {
 export async function onRequestGet(context: EventContext) {
   // Define the OAuth parameters
   const clientId = context.env.OAUTH_CLIENT_ID;
-  const redirectUri = "https://yourapp.com/callback"; // Replace with your actual callback URL
+  const redirectUri = context.env.REDIRECT_URL; // Replace with your actual callback URL
   const state = await generateState();
 
   // Construct the GitHub OAuth URL
