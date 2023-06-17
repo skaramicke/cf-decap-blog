@@ -8,7 +8,7 @@ interface Env {
   ASSETS: any;
   OAUTH_CLIENT_ID: string;
   OAUTH_CLIENT_SECRET: string;
-  REDIRECT_URL: string;
+  REDIRECT_URI: string;
 }
 
 interface Headers {
@@ -56,7 +56,7 @@ async function generateState() {
 export async function onRequestGet(context: EventContext) {
   // Define the OAuth parameters
   const clientId = context.env.OAUTH_CLIENT_ID;
-  const redirectUri = context.env.REDIRECT_URL; // Replace with your actual callback URL
+  const redirectUri = context.env.REDIRECT_URI; // Replace with your actual callback URL
   const state = await generateState();
 
   // Construct the GitHub OAuth URL
