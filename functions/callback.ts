@@ -89,7 +89,7 @@ export async function onRequestGet(context: EventContext): Promise<Response> {
           })}',
           window.location.origin
         )
-        window.close();
+        // window.close();
       })()
       </script>`;
 
