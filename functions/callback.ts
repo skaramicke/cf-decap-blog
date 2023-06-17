@@ -1,5 +1,3 @@
-import { URL, URLSearchParams } from "url";
-
 interface Params {
   [key: string]: string;
 }
