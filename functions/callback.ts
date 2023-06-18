@@ -39,6 +39,45 @@ interface EventContext {
   next(input?: CloudflareRequest | string, init?: RequestInit): Response; // Assuming next returns a Response. Update as needed.
 }
 
+function renderResponse(status: "success" | "error", content: any) {
+  return `
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <title>Authorizing ...</title>
+    </head>
+    <body>
+      <p id="message"></p>
+      <script>
+        // Output a message to the user
+        function sendMessage(message) {
+          document.getElementById("message").innerText = message;
+          document.title = message
+        }
+
+        // Handle a window message by sending the auth to the "opener"
+        function receiveMessage(message) {
+          console.debug("receiveMessage", message);
+          window.opener.postMessage(
+            'authorization:github:${status}:${JSON.stringify(content)}',
+            message.origin
+          );
+          window.removeEventListener("message", receiveMessage, false);
+          sendMessage("Authorized, closing ...");
+        }
+
+        sendMessage("Authorizing ...");
+        window.addEventListener("message", receiveMessage, false);
+
+        console.debug("postMessage", "authorizing:github", "*")
+        window.opener.postMessage("authorizing:github", "*");
+      </script>
+    </body>
+  </html>
+  `;
+}
+
 export async function onRequestGet(context: EventContext): Promise<Response> {
   const clientId = context.env.OAUTH_CLIENT_ID;
   const clientSecret = context.env.OAUTH_CLIENT_SECRET;
@@ -79,19 +118,10 @@ export async function onRequestGet(context: EventContext): Promise<Response> {
     const gitBody = await gitResponse.json();
 
     // Construct script to post the authorization data to the parent window
-    const script = `
-      <script>
-      (function() {
-        window.opener.postMessage(
-          'authorization:github:success:${JSON.stringify({
-            token: gitBody.access_token,
-            provider: "github",
-          })}',
-          window.location.origin
-        )
-        // window.close();
-      })()
-      </script>`;
+    const script = renderResponse("success", {
+      token: gitBody.access_token,
+      provider: "github",
+    });
 
     // Serve the script to the popup window
     return new Response(script, { headers: { "Content-Type": "text/html" } });
